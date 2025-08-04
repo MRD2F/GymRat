@@ -1,10 +1,15 @@
 import unicodedata
 import re
-from langchain.document_loaders import PyMuPDFLoader
+#from transformers import GPT2TokenizerFast
+#from langchain.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+#Read a .pdf file, and splits it into chunks. The chunks are processed to clean them to create an
+#optimal input for content generation using a LLM model
+
 class CleanText:
-    def __init__(self, text, unique_non_english_characters=[]):
+    def __init__(self, text, unique_non_english_characters=None):
         self.text = text #chuck.page_content
         self.words = text.split()
         self.unique_non_english_characters = unique_non_english_characters
@@ -46,17 +51,40 @@ class CleanText:
         """Remove number ranges like '100–200' using dash or Unicode dash."""
         return re.sub(r'\b\d+[\u2013\u2014\u2012\u2010\u2212-]\d+\.*', '', text)
     
+    # def replace_non_ascii_chars(self, word):
+    #     """Replace bad glyphs or unusual non-ASCII characters in a word."""
+    #     replacements = {
+    #         "\u0346": "fl",
+    #         "\u0345": "fi",
+    #         "\u00EF": "i"
+    #     }
+    #     for char in word:
+    #         if char in self.unique_non_english_characters and char in replacements:
+    #             word = word.replace(char, replacements[char])
+    #     return word
+    
+
     def replace_non_ascii_chars(self, word):
         """Replace bad glyphs or unusual non-ASCII characters in a word."""
+
+        # Normalize the word to decompose combining characters
+        word = unicodedata.normalize("NFKC", word)
+
         replacements = {
-            "\u0346": "fl",
+            "\u0346": "fl",  
             "\u0345": "fi",
             "\u00EF": "i"
         }
-        for char in word:
-            if char in self.unique_non_english_characters and char in replacements:
+
+        if self.unique_non_english_characters is None:
+            self.unique_non_english_characters = set(replacements.keys())
+
+        for char in replacements:
+            if char in word:
                 word = word.replace(char, replacements[char])
+
         return word
+
 
     def clean_word(self, word):
         """Apply all cleaning steps to an individual word."""
@@ -76,12 +104,18 @@ class CleanText:
     #chunks -> chunk.page_content == text -> words (chunk[i].split()/text.split()) -> word = text.split()[i] 
 
 
+#######################################################################################################
+#######################################################################################################
+#######################################################################################################
+#######################################################################################################
+
 
 class CreateChunks:
-    def __init__(self, file_path, chunk_size=500, chunk_overlap=50, return_as_documents=True):
+    def __init__(self, file_path, chunk_size=500, chunk_overlap=50, length_function=len, return_as_documents=True):
         self.file_path = file_path
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.length_function = length_function
         self.return_as_documents = return_as_documents
         self.chunks = self.get_chunks()
         self.non_ascii_words, self.private_unicode_words, self.non_ascii_chars  = self.get_problematic_lists()
@@ -91,12 +125,13 @@ class CreateChunks:
         loaded_document = loader.load()
         return loaded_document
 
-    def split_text(self, document):    
+    def split_text(self, document):  
+
         separators = ["\n\n", "\n", ".", " ", ""]
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            length_function=len, 
+            length_function=self.length_function, 
             separators=separators
         )
         if self.return_as_documents:
