@@ -9,6 +9,10 @@ from tqdm import tqdm
 import os
 import pandas as pd
 
+## Clean chunk text from a .pdf file is created using the CreateChunks class from the create_clean_chunks.py script
+## In this script the chunked cleaned text is used as input of a LLM to generate a QA list
+## This list can be saved, or used directly, in the CreateJsonQA class of the create_json_qa.py script,
+## which provides the final input for the LLM fine-tunning
 
 class GenerateQAContent:
     def __init__(self, file_name, model_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0", compute_chunks=False):
@@ -16,12 +20,15 @@ class GenerateQAContent:
         self.model_id = model_id
 
     def get_text(self):
-        with open(self.file_name, "r") as f:
-            llama_chunks = json.load(f)
+        # with open(self.file_name, "r") as f:
+        #     llama_chunks = json.load(f)
+        with open(self.file_name, 'r') as f:
+            llama_chunks = f.readlines()
         return llama_chunks 
     
     def get_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained(self.model_id, padding_side="left")
+        tokenizer = AutoTokenizer.from_pretrained(self.model_id, padding_side="left", 
+                                                  max_tokens=256)
         #eos -> end of string token is the pad token
         tokenizer.pad_token = tokenizer.eos_token
         return tokenizer
@@ -101,10 +108,10 @@ class GenerateQAContent:
             with open(f"{json_output_name}.json", "w") as f:
                 json.dump(raw_outputs, f)
         
-        return raw_output
+        return raw_outputs
 test=True
 if test:    
-    file_name = "llama_chunks_text_chuck_size250_overlap30.json"
+    file_name = "../notebooks/docling_chunk_text_context_llm_tokenizer.json"#"llama_chunks_text_chuck_size250_overlap30.json"
     gc = GenerateQAContent(file_name)
     text = gc.get_text()
     raw = gc.generate_content(n_max_chunks=3)
