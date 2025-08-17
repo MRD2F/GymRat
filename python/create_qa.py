@@ -1,13 +1,16 @@
-from pathlib import Path
-import sys
-sys.path.append(str(Path('../python').resolve()))
-from create_clean_chunks import *
-from transformers import pipeline, AutoModelForCausalLM, BitsAndBytesConfig
+# from pathlib import Path
+# import sys
+# sys.path.append(str(Path('../python').resolve()))
+#from create_clean_chunks import *
+
 import json
-from transformers import AutoTokenizer
 from tqdm import tqdm
-import os
-import pandas as pd
+#Not used for now, didn't seem to improve much the results, and needed to be adapted to the next classes to process the raw outputs
+from generated_prompt import prompt_template 
+from transformers import pipeline, AutoModelForCausalLM, BitsAndBytesConfig, AutoTokenizer
+
+# import os
+# import pandas as pd
 
 ## Clean chunk text from a .pdf file is created using the CreateChunks class from the create_clean_chunks.py script
 ## In this script the chunked cleaned text is used as input of a LLM to generate a QA list
@@ -27,8 +30,10 @@ class GenerateQAContent:
         return llama_chunks 
     
     def get_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained(self.model_id, padding_side="left", 
-                                                  max_tokens=256)
+        tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+        tokenizer.pad_token = tokenizer.eos_token
+        # tokenizer = AutoTokenizer.from_pretrained(self.model_id, padding_side="left", 
+        #                                           max_tokens=256)
         #eos -> end of string token is the pad token
         tokenizer.pad_token = tokenizer.eos_token
         return tokenizer
@@ -41,7 +46,9 @@ class GenerateQAContent:
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4",  # You can also use "fp4"
-            bnb_4bit_compute_dtype="float16"
+            bnb_4bit_compute_dtype="float16",
+            llm_int8_enable_fp32_cpu_offload=True   # ✅ allow safe CPU offload 
+            #By default, when offloading, Hugging Face expects those CPU modules to run in full 32-bit precision (FP32). Since you didn’t explicitly tell it how to handle that case, it raises the error:
             )
 
         model = AutoModelForCausalLM.from_pretrained(
@@ -52,7 +59,7 @@ class GenerateQAContent:
         )
 
         qa_gen = pipeline("text-generation", model=model, tokenizer=self.get_tokenizer(), 
-                           max_new_tokens=256)
+                           max_new_tokens=512)
         return qa_gen
     
     def get_prompt(self, text):
@@ -78,10 +85,11 @@ class GenerateQAContent:
         tokenizer = self.get_tokenizer()
         return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
-    def generate_content(self, n_max_chunks=None, n_repetitions=3, json_output_name=None, batch_size=16):
+    def generate_content(self, n_chunks_intervals=None, n_repetitions=3, save_json=False, batch_size=16):
         text_chunks = self.get_text()
         raw_outputs = []
-        samples = text_chunks[:] if n_max_chunks == None else text_chunks[:n_max_chunks]
+        samples = text_chunks[:] if n_chunks_intervals == None else text_chunks[n_chunks_intervals[0]:n_chunks_intervals[1]]
+
 
         qa_gen = self.get_transformers_pipeline()
         for i in tqdm(range(0, len(samples), batch_size)):
@@ -90,11 +98,12 @@ class GenerateQAContent:
             print(f"Processing batch with samples {i, i + batch_size} ")
 
             for _ in range(n_repetitions):  # Repeat generation 3 times per batch
+                #prompt = [prompt_template(chunk,1) for chunk in batch]
                 prompt = [self.get_prompt(chunk) for chunk in batch]
                 
                 raw_output = qa_gen(
                     prompt, 
-                    max_new_tokens=256, 
+                    max_new_tokens=512, 
                     do_sample=True,
                     temperature=0.7,
                     top_k=50,
@@ -103,19 +112,28 @@ class GenerateQAContent:
                 
                 raw_outputs.extend([o[0]["generated_text"] for o in raw_output])
         
-        if json_output_name:
-            #with open(f"raw_outputs_samples{len(samples)}_nreps{n_repetitions}_new_tok{256}_chuck_size{250}_overlap{30}.json", "w") as f:
+        if save_json:
+            json_output_name= f"../data/raw_outputs_samples{len(samples)}_nreps{n_repetitions}_metallama_maxtoken{128}max_new_tokens{512}"
             with open(f"{json_output_name}.json", "w") as f:
                 json.dump(raw_outputs, f)
         
         return raw_outputs
-test=True
-if test:    
-    file_name = "../notebooks/docling_chunk_text_context_llm_tokenizer.json"#"llama_chunks_text_chuck_size250_overlap30.json"
-    gc = GenerateQAContent(file_name)
+    
+test=False
+if test: 
+    file_name = "../data/rebuilding_milo_chunks_docling_max_tokens128_min_tokens50_meta_llama3p18B.txt" 
+    model_id = "meta-llama/Llama-3.1-8B-Instruct" #TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+    save_json=False
+ 
+    #For all chunks set to None
+    n_chunks_intervals=[30,31] 
+    n_repetitions = 1
+
+    gc = GenerateQAContent(file_name, model_id)
     text = gc.get_text()
-    raw = gc.generate_content(n_max_chunks=3)
-    print(raw)
+    raw_outputs = gc.generate_content(n_chunks_intervals=n_chunks_intervals, n_repetitions=n_repetitions, 
+                                      save_json=save_json, batch_size=16)
+    #print(raw_outputs)
 
 # #####################################################################################
 # #####################################################################################
