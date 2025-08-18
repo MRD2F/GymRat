@@ -1,7 +1,11 @@
 from pathlib import Path
 import sys
 sys.path.append(str(Path('../python').resolve()))
-from create_qa import *
+from create_qa import GenerateQAContent
+import json
+import os
+import re
+import pandas as pd
 
 #####################################################################################
 ####################### CLEANING RAW GENERATED CONTENT ##############################
@@ -12,22 +16,24 @@ from create_qa import *
 ## which provides the final input for the LLM fine-tunning
 
 class CreateJsonQA:
-    def __init__(self, raw_content_name=None, input_text_file_name=None, n_max_chunks=None):
-        self.raw_content_name = raw_content_name
+    def __init__(self, raw_qa_json_file_name=None, input_text_file_name=None, keyword_splitter="<|assistant|>" ,n_max_chunks=None):
+        self.raw_qa_json_file_name = raw_qa_json_file_name
         self.input_text_file_name = input_text_file_name
+        self.keyword_splitter = keyword_splitter
         self.n_max_chunks = n_max_chunks
     
     def get_raw_output(self):
-        if self.raw_content_name:
-            if os.path.exists(self.raw_content_name):
-                with open(self.raw_content_name, "r", encoding="utf-8") as f:
+        if self.raw_qa_json_file_name:
+            if os.path.exists(self.raw_qa_json_file_name):
+                with open(self.raw_qa_json_file_name, "r", encoding="utf-8") as f:
                     raw_outputs = json.load(f)
             else:
-                print(f"Input raw_content_name: {self.raw_content_name} provided to class CreateJsonQA, couldn't be opened.")
+                print(f"Input raw_qa_json_file_name: {self.raw_qa_json_file_name} provided to class CreateJsonQA, couldn't be opened.")
 
         else:
             gc = GenerateQAContent(self.input_text_file_name)
-            raw_outputs = gc.generate_content(self.n_max_chunks)
+            raw_outputs = gc.generate_content(n_chunks_intervals=None, n_repetitions=1, 
+                                  save_json=False, batch_size=16)
         
         return raw_outputs
 
@@ -135,7 +141,12 @@ class CreateJsonQA:
             return i
         
     def create_instruction_output(self, output):
-        raw_output = output.split("<|assistant|>")[1]
+        if len(output.split(self.keyword_splitter)) > 1:
+            raw_output = output.split(self.keyword_splitter)[1]
+        else:
+            raw_output = output.split(self.keyword_splitter)[0]
+
+        #raw_output = output.split(self.keyword_splitter)[1]
         raw_output = re.sub(r'"question":', '"instruction":', raw_output, flags=re.IGNORECASE)
         raw_output = re.sub(r'"answer":', '"output":', raw_output, flags=re.IGNORECASE)
 
@@ -156,7 +167,8 @@ class CreateJsonQA:
         #Remove final dot, to add later the ?.,
         instruction = instruction.strip()[:-1] if instruction.strip().endswith(".") else instruction.strip()
         instruction = instruction if instruction.endswith("?") else instruction+"?"
-        instruction = instruction+'.",'
+        # instruction = instruction+'.",'
+        instruction = instruction+'",'
         #print(f"INS: {instruction}")
 
         #return pre-defined null template if there "NULL on eather the insptructions or outputs"
@@ -202,6 +214,9 @@ class CreateJsonQA:
 
             output = output.replace('"Question:', '')
             instruction = instruction.replace('?"?."', '?."').replace('"?."', '').replace('"?.",', ',').replace('- "?."', ',')
+            instruction = instruction.replace('?"?"', '?"').replace('"?"', '').replace('"?",', ',').replace('- "?"', ',')
+            
+            output = output.replace('.."', '."')
             if output.endswith('""'):
                 output = output.replace('""', '"')
 
@@ -306,36 +321,79 @@ class CreateJsonQA:
         return cleaned_data
 
 
-test=True
-if test:    
-    file_name = "llama_chunks_text_chuck_size250_overlap30.json"
-    # gc = GenerateQAContent(file_name)
-    # text = gc.get_text()
-    # print(len(text))
-    # raw = gc.generate_content(n_max_chunks=3)
-    #print(raw)
-    ##### Create a json from an pre-made raw generated QA
-    raw_content_name= "raw_outputs_samples1260_nreps3_new_tok256_chuck_size250_overlap30.json"
-    input_text_file_name=None
-    n_max_chunks=20
+test=False
+if test:   
+    raw_qa_json_file_name = "../data/raw_outputs_samples1711_nreps1_metallama_maxtoken128max_new_tokens512.json"
+    chunks_text_file_name = "../data/rebuilding_milo_chunks_docling_max_tokens128_min_tokens50_meta_llama3p18B.txt" 
+    new_json_file_name = "../data/clean_json_outputs_samples1711_nreps1_metallama_maxtoken128max_new_tokens512.json"
+    
+    n_max_chunks = None
+    #Details for the cleaning of the raw json file
+    verbose=True
 
-    create_json = CreateJsonQA(raw_content_name=raw_content_name, input_text_file_name=input_text_file_name, n_max_chunks=n_max_chunks)
+    read_generated_qa = True
+    #keyword to specify when the generered Assistant output starts
+    keyword_splitter = "<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+
+    if read_generated_qa:
+        create_json = CreateJsonQA(raw_qa_json_file_name=raw_qa_json_file_name, input_text_file_name=None, 
+                                   keyword_splitter=keyword_splitter,n_max_chunks=n_max_chunks)
+    else:
+        create_json = CreateJsonQA(raw_qa_json_file_name=None, input_text_file_name=chunks_text_file_name, 
+                                   keyword_splitter=keyword_splitter, n_max_chunks=n_max_chunks)
 
     raw_outputs = create_json.get_raw_output()
+    # print(len(raw_outputs))
+    # print(raw_outputs[:3])
+    json_output_name= None
 
-    json_output_name = "../data/test"
     json_test, _, _ = create_json.create_instruction_output_json(raw_outputs, json_output_name=json_output_name,
-                                                           verbose=False)
+                                                                 verbose=verbose)
 
-    #### Clean just created json
+    #print(len(json_test))
+    print(json_test[:3])
 
-    new_json_file_name = "../data/clean_test"
-    
+    ####### Save cleaned json QA #############
+
     merge_with_existing_data = False
     all_outputs = json_test
     input_json_file_name = None#json_output_name
 
     cleaned_json = create_json.clean_json_file(all_outputs=all_outputs, json_file_name=input_json_file_name, 
                         merge_with_existing_data=merge_with_existing_data, new_json_file_name=new_json_file_name)
+    print(f"Before cleaning: {len(all_outputs)} after {len(cleaned_json)}")
+
+    #print(cleaned_json)
+
+    if False:
+        file_name = "llama_chunks_text_chuck_size250_overlap30.json"
+        # gc = GenerateQAContent(file_name)
+        # text = gc.get_text()
+        # print(len(text))
+        # raw = gc.generate_content(n_max_chunks=3)
+        #print(raw)
+        ##### Create a json from an pre-made raw generated QA
+        raw_content_name= "raw_outputs_samples1260_nreps3_new_tok256_chuck_size250_overlap30.json"
+        input_text_file_name=None
+        n_max_chunks=20
+
+        create_json = CreateJsonQA(raw_content_name=raw_content_name, input_text_file_name=input_text_file_name, n_max_chunks=n_max_chunks)
+
+        raw_outputs = create_json.get_raw_output()
+
+        json_output_name = "../data/test"
+        json_test, _, _ = create_json.create_instruction_output_json(raw_outputs, json_output_name=json_output_name,
+                                                            verbose=False)
+
+        #### Clean just created json
+
+        new_json_file_name = "../data/clean_test"
+        
+        merge_with_existing_data = False
+        all_outputs = json_test
+        input_json_file_name = None#json_output_name
+
+        cleaned_json = create_json.clean_json_file(all_outputs=all_outputs, json_file_name=input_json_file_name, 
+                            merge_with_existing_data=merge_with_existing_data, new_json_file_name=new_json_file_name)
 
      

@@ -83,7 +83,10 @@ class FineTuneLora:
         return train_dataset, test_dataset
 
     def train(self, df_column_names=["question", "answer"]  ):
-        json_dataset = self.convert_to_json(self.get_and_preprocess_dataset(), df_column_names)
+        #json_dataset = self.convert_to_json(self.get_and_preprocess_dataset(), df_column_names)
+        import json
+        with open(self.dataset_path, "r", encoding="utf-8") as f:
+            json_dataset = json.load(f)
         train_dataset, test_dataset = self.get_json_lora_input(json_dataset)
 
         def tokenize_function(example):
@@ -138,8 +141,9 @@ class FineTuneLora:
     def save_model(self):
         self.peft_model.save_pretrained(self.output_dir)
 
-test=False
+test=True
 if test:
+    json_input_qa = "../data/clean_json_outputs_samples1711_nreps1_metallama_maxtoken128max_new_tokens512.json"
 
     lora_config = LoraConfig(
         r=8,
@@ -152,11 +156,11 @@ if test:
 
     lora_fn = FineTuneLora(
             model_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-            dataset_path="../data/medquad.csv",
+            dataset_path=json_input_qa, 
             output_dir="../models/lora_finetuned_model",
             lora_config=lora_config)
 
-    df = lora_fn.get_and_preprocess_dataset()
+    #df = lora_fn.get_and_preprocess_dataset()
     #print(df.head())
     #json = lora_fn.convert_to_json(df, ["question", "answer"])
     #json_formatted = lora_fn.get_json_lora_input(json)
