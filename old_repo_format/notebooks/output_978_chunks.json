@@ -1,0 +1,10 @@
+[
+  {
+    "instruction": "The passage mentions that the information in the book is for educational purposes only and not a substitute for professional medical advice. Does this mean I shouldn't try any exercises or techniques described in the book without talking to a healthcare professional first?",
+    "output": "Yes, that's correct. The passage explicitly states that you should always consult your healthcare provider to determine if the information is appropriate for your situation, especially if you have any medical conditions or are considering a new treatment plan. It's best to get professional advice before starting any new exercises or techniques."
+  },
+  {
+    "instruction": "If a book contains a disclaimer stating that the information is not intended to diagnose or treat any disease, what does that imply about the reliability of the health information presented?",
+    "output": "It means the information should not be considered medical advice and should not be used as a substitute for consulting with a qualified healthcare professional for any health concerns."
+  }
+]

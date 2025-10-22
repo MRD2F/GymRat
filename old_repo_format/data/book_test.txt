@@ -1,0 +1,150 @@
+
+TABLE OF CONTENTS
+Foreword by Dr. Kelly Starrett
+Introduction
+Chapter 1: Back Pain
+The Picture Isn’t Always What It Seems
+Back Injury Anatomy 101
+How to Screen Your Low Back Pain
+Classifying Your Back Pain
+The Rebuilding Process
+Bridging the Gap: Early Rehab to Performance
+The Bridge to Performance
+Should You Wear a Weightlifting Belt?
+Cautionary Exercises for Low Back Injury Rehab
+Does Stretching the Hamstrings Fix Low Back Pain?
+Chapter 2: Hip Pain
+Hip Anatomy
+Hip Injury Anatomy 101
+
+Hip Anatomy
+Hip Injury Anatomy 101
+How to Screen Your Hip Pain
+The Rebuilding Process
+Chapter 3: Knee Pain
+Knee Injury Anatomy 101
+How to Screen Your Knee Pain
+The Rebuilding Process
+
+Chapter 4: Shoulder Pain
+Shoulder Anatomy
+Shoulder Injury Anatomy 101
+How to Screen Your Shoulder Pain
+The Rebuilding Process
+Chapter 5: Elbow Pain
+Elbow Injury Anatomy 101
+How to Screen Your Elbow Pain
+The Rebuilding Process
+Chapter 6: Ankle Pain
+Achilles Tendon Injury Anatomy 101
+How to Screen Your Achilles Tendon Pain
+The Rebuilding Process
+Chapter 7: Don’t Ice, Walk It Oﬀ!
+In͆ammation and Swelling
+Using Muscle Contraction to Reduce Swelling and Facilitate Healing
+
+Using NMES to Facilitate Healing When Movement Is Limited
+Icing After Workouts
+Acknowledgments
+
+Foreword
+“We are drowning in information, while
+starving for wisdom. The world
+henceforth will be run by synthesizers,
+people able to put together the right
+information at the right time, think
+critically about it, and make important
+choices wisely.” —E. O. Wilson
+Aaron Horschig is a unicorn. He is that uncommon person who can
+simultaneously occupy the roles of user, teacher, and synthesizer. There is
+a trend today amongst the internet elite to do a lot of talking about
+
+problems without really ever having to live those problems on a daily
+basis. Don’t get me wrong; not working in the trenches in real time is far
+easier. You can just talk about the world of others’ work in a critical way.
+You don’t really have to produce anything original, problem-solve in real
+time, work within the context of crazy professional/high-performance
+environments, or show any of your own work. If you could create a
+photonegative of this kind of phenomenon, the image would be of
+
+Aaron.
+This book you are holding isn’t actually that remarkable an
+achievement for the man behind Squat University. Don’t mistake me
+
+here. This book is remarkable both for its content and for the paradigm
+shift that it represents. It is, however, altogether typical of Aaron and his
+drive to share his considerable success in helping people untangle the
+complexities of their pain and movement problems.
+Perhaps it’s the way our mentors and thought leaders engaged with
+us, or perhaps it’s because it’s the foundation of science, but “Test, Retest,
+Share” has been the mantra of every great thinker since the dawn of time.
+
+The E. O. Wilson quote is one of my favorites, but Dr. Wilson was always
+quick to point out that the ultimate goal of science was actually to
+improve the humanities. Think on that for a moment. Open your
+Instagram feed. Look at the educators who come up. Run their feeds
+through the ͅlter that I use to try and make sense of what I’m seeing.
+Does what I’m seeing explain what’s happening? Does it predict future
+movement behavior? Is the thinking reproducible and transferable?
+
+These are features of all good models. Good models aren’t social media
+thirst traps. They aren’t always that sexy, but they work. And they improve
+the lives of the people who use them.
+If you look at the considerable amount of teaching Aaron has put into
+the world, you will see synthesis at its heart. This is a trait he shares with
+the entire crop of thought leaders who are driving the human movement
+train. Aaron was classically trained as a physical therapist, but he wears
+
+the mantle of a coach. This is his true superpower. He is a movement
+genius but trained as an expert in understanding the all-too-common
+problems of injury, pathology, and human durability. When Aaron
+teaches, he has one eye on going faster and heavier and one eye solidly
+on the problem of sustainability. Integrating these sometimes competing
+forces can require an iron stomach and a solid foundation in the
+complicated and always messy experience that constitutes any ͅeld that
+
+involves working with complex humans.
+
+Don’t be fooled by the casual way Aaron can spot the heart of a
+movement problem. Ultimately, no matter what’s going on, you will be
+moving. Ergo, it’s a movement problem. He’s only going to be satisͅed
+when he has fulͅlled the last parts of both promises: share, and make
+sure you can see what he sees.
+You are holding that promise in your hands. Test and retest it. Let us
+know what you ͅnd.
+Kelly Starrett
+
+Introduction
+Behind many a legendary tale, there is a
+hidden lesson to be learned. Those who
+incorporate weight training with the goal
+of improving their physique, strength, or
+power should look to the story of Milo of
+Croton.
+Milo was an ancient Greek Olympian and the poster child for athletic
+excellence in his time. Legend has it that at a young age, Milo started his
+strength journey by lifting a small calf and carrying it on his shoulders
+
+every day. As the calf grew over the years, so did Milo’s strength, until one
+day he was hoisting a full-grown bull! Although it is unlikely that he was
+able to lift a 1,500-pound bull, like any good story, the legend sprang
+from humble beginnings.
+The 2,500-year-old story of how Milo built his heroic strength set forth
+the training principle that all athletes adhere to. That principle is now
+known as “progressive overload.” Within Milo’s story is the idea that hard
+
+work combined with consistency can lead to legendary feats of strength
+and awe-inspiring athletic performance.
+Deep inside each and every one of us is an innate desire to become
+our own version of Milo. The idea of building incredible strength and
+meeting our physical goals is why so many of us push our bodies day in
+
+and day out. While at surface level the story of Milo may seem simple, the
+reality is that the process of building extraordinary strength is as much
+about grit, hard work, and determination as it is about science.
+You see, our bodies adhere to a scientiͅc “code,” a simple framework
+of rules governed by the laws of biology and physiology. The code is
+simple. To develop strength, you must strike a balance between stress
+and recovery. Every time you perform a set of squats, pick up a heavy
+
+deadlift, or press a barbell overhead, you place a stress on your body. 

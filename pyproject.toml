@@ -1,0 +1,18 @@
+[project]
+name = "gymrat-env"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub>=0.35.3",
+    "load-dotenv>=0.1.0",
+    "mlflow>=3.5.0",
+    "numpy>=2.3.4",
+    "pandas>=2.3.3",
+    "python-dotenv>=1.1.1",
+    "tensorflow>=2.20.0",
+    "torch>=2.9.0",
+    "tqdm>=4.67.1",
+    "transformers>=4.57.1",
+]

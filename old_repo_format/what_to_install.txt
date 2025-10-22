@@ -1,0 +1,9 @@
+pip install langchain-community
+pip install pypdf
+pip install pymupdf
+pip install sentence-transformers
+pip install peft transformers accelerate datasets bitsandbytes
+#pip install openai Not used for now
+google-generativeai==0.8.5
+#pip install pdfminer.six -> Other loader not used
+pip install pdfplumber

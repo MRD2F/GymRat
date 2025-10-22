@@ -1,0 +1,14 @@
+artifact_uri: file:///home/mrosaria/Projects/NLP/GymRat/src/data_creation/mlruns/487467142864782777/3dad9f13c3194ae4a004c603dc33d5c2/artifacts
+end_time: 1761065975377
+entry_point_name: ''
+experiment_id: '487467142864782777'
+lifecycle_stage: active
+run_id: 3dad9f13c3194ae4a004c603dc33d5c2
+run_name: qa_batch_1_2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761065975363
+status: 3
+tags: []
+user_id: mrosaria

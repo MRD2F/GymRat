@@ -1,0 +1,11 @@
+model_id: "meta-llama/Llama-3.1-8B"
+experiment_name: "../../logs/mlruns/qa_generation_experiment"
+
+generation:
+  batch_size: 5
+  n_reps: 1
+  temperature: 0.75
+  top_p: 0.65
+  max_tokens: 384
+  sample_i: 1
+  sample_f: 2

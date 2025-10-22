@@ -1,0 +1,12 @@
+- Download from website:https://ffmpeg.org/download.html
+     curl -O https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+- unpacked tar -xf ffmpeg-release-amd64-static.tar.xz
+- enter directory: 
+cd ffmpeg-*-static
+
+- Already have installed : 
+pip install yt-dlp
+pip install openai-whisper
+
+- Download the audio from youtube: 
+yt-dlp --ffmpeg-location "ffmpeg-7.0.2-amd64-static" -x --audio-format mp3 "https://www.youtube.com/watch?v=Qpr5i4DTpk0" -o "video_audio.%(ext)s"
