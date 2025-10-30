@@ -4,9 +4,13 @@ from datetime import datetime
 import yaml
 from dataclasses import dataclass
 from typing import List
+#works when in terminal root project: export PYTHONPATH=$PYTHONPATH:/home/mrosaria/Projects/NLP/GymRat/src
 from utils import get_private_key
 from huggingface_hub import login
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
+import time
+import json
+import numpy as np
 
 
 @dataclass
@@ -45,7 +49,7 @@ class SyntheticQAGenerator:
         self.chuncked_data_file_name = chuncked_data_file_name
         self.output_file_name = f"synthetic_QA_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         login(token=get_private_key("HF_TOKEN"))
-
+        
     def _load_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(self.cfg.model_id)
 
@@ -57,6 +61,12 @@ class SyntheticQAGenerator:
 
         #left using commonly for generation and training, right for inference
         tokenizer.padding_size="right"
+        
+        tokenizer.chat_template = {
+            "system": "{input}",      # system instructions
+            "user": "{input}",        # user input
+            "assistant": "{output}"   # model output
+        }
 
         return tokenizer
 
@@ -67,7 +77,7 @@ class SyntheticQAGenerator:
     def create_pipeline(self):
         pipe = pipeline("text-generation",
                          model=self._load_model(), 
-                         tokenizer=self._load_tokenizer)
+                         tokenizer=self._load_tokenizer())
         return pipe
     
     #     model = AutoModelForCausalLM.from_pretrained(
@@ -127,11 +137,11 @@ class SyntheticQAGenerator:
     def generate(self):
         chat = self.create_pipeline()
 
-        prompt_text = "Translate the following English sentence to French: 'Hello world!'"
+        # prompt_text = "Translate the following English sentence to French: 'Hello world!'"
 
-        response = chat(prompt_text)
+        # response = chat(prompt_text)#, pad_token_id=self._load_tokenizer().pad_token_id)
 
-        print(response[0]["generated_text"])
+        # print(response[0]["generated_text"])
 
         cfg = self.cfg
         samples = self.get_samples()
@@ -153,7 +163,80 @@ class SyntheticQAGenerator:
                 # Iterate over each sample in the batch
                 for prompt in batch_prompts:
                     for _ in range(cfg.n_reps):
-                        print(prompt)
+                        try:
+                            # chat_completion = chat(prompt,
+                            #                        max_length=cfg.max_tokens,
+                            #                        do_sample=True,
+                            #                        temperature=cfg.temperature,
+                            #                        top_p=cfg.top_p,
+                            #                        num_return_sequences=cfg.n_reps)
+
+                           
+                           3
+                            
+                            print('*'*20)
+                            print(chat_completion)
+                            print('*'*20)
+
+                            # Parse output
+                            content = chat_completion[0]["generated_text"]
+                            # .choices[0].message.content
+                            # usage = getattr(chat_completion, "usage", None)
+
+                            try:
+                                parsed = json.loads(content)
+                                instruction = parsed.get("instruction", "")
+                                output = parsed.get("output", "")
+                            except json.JSONDecodeError:
+                                instruction, output = None, content
+
+                            results.append({
+                                "prompt": prompt,
+                                "instruction": instruction,
+                                "output": output,
+                                "usage": {
+                                    "prompt_tokens": getattr(usage, "prompt_tokens", None),
+                                    "completion_tokens": getattr(usage, "completion_tokens", None),
+                                    "total_tokens": getattr(usage, "total_tokens", None)
+                                }
+                            })
+
+                            # Collect token metrics
+                            if usage:
+                                total_prompt_tokens.append(usage.prompt_tokens)
+                                total_completion_tokens.append(usage.completion_tokens)
+
+                            time.sleep(0.5)  # avoid hitting rate limits
+                        except Exception as e:
+                            print(f"Error generating completion for prompt: {prompt}")
+                            print(e)
+
+
+        #                 except Exception as e:
+        #                     print(f"Error generating completion for prompt: {prompt}")
+        #                     print(e)
+
+        #     # ==== SAVE OUTPUT LOCALLY ====
+        #     with open(json_output_name, "w") as f:
+        #         json.dump(results, f, indent=2)
+
+        #     # ==== LOG METRICS & ARTIFACTS ====
+        #     if total_prompt_tokens:
+        #         mlflow.log_metric("avg_prompt_tokens", np.mean(total_prompt_tokens))
+        #         mlflow.log_metric("avg_completion_tokens", np.mean(total_completion_tokens))
+        #         mlflow.log_metric("total_generations", len(results))
+
+        #     # Upload JSON output as artifact
+        #     mlflow.log_artifact(json_output_name)
+
+        #     mlflow.set_tag("dataset", "synthetic_QA_physio")
+        #     mlflow.set_tag("run_type", "generation")
+        #     mlflow.set_tag("status", "completed")
+
+        # print(f"✅ Generation completed. Logged results in MLflow experiment.")
+        #         # Placeholder for actual model inference code
+        #         # This function should interact with the specified model to generate the QA pair
+        #         pass
         
         #     
 
