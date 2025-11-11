@@ -1,3 +1,6 @@
+# from config.env_loader import setup_env
+# setup_env()
+
 from tqdm import tqdm
 import mlflow
 from datetime import datetime
@@ -12,7 +15,6 @@ from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, BitsAndB
 import time
 import json
 from json_repair import repair_json
-
 
 
 @dataclass
@@ -47,13 +49,14 @@ class QAGenerationConfig:
         )
 
 class SyntheticQAGenerator:
-    # def __init__(self, chuncked_data_file_name: str, output_file_name: str, api_key: str, model: str = "gpt-4"):
     def __init__(self, chuncked_data_file_name: str, config: QAGenerationConfig):
         self.cfg = config    
         self.chuncked_data_file_name = chuncked_data_file_name
         self.output_file_name = f"synthetic_QA_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
         login(token=get_private_key("HF_TOKEN"))
         
+
     def _load_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(self.cfg.model_id)
 
@@ -69,20 +72,17 @@ class SyntheticQAGenerator:
 
 
     def _load_model(self):
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype='float16',
-            bnb_4bit_use_double_quant=True
-        )
-        if self.cfg.use_bnb:
-            return AutoModelForCausalLM.from_pretrained(self.cfg.model_id, 
-                                                        device_map="auto", 
-                                                        quantization_config=bnb_config)
-        else:
-            return AutoModelForCausalLM.from_pretrained(self.cfg.model_id, 
-                                                        device_map="auto")
+        kwargs = {"device_map": "auto"}
 
+        if self.cfg.use_bnb:
+            kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype="float16",
+                bnb_4bit_use_double_quant=True,
+            )
+
+        return AutoModelForCausalLM.from_pretrained(self.cfg.model_id, **kwargs)
 
     def create_pipeline(self):
         tokenizer = self._load_tokenizer()
@@ -93,18 +93,18 @@ class SyntheticQAGenerator:
         return pipe, tokenizer
     
 
-    def get_text(self) -> List[str]:
+    def _get_text(self) -> List[str]:
         with open(self.chuncked_data_file_name , 'r') as f:
             llama_chunks = f.readlines()
         return llama_chunks 
         
-    def get_samples(self, n_chunks_intervals : List[int] = None) -> List[str]:
-        text_chunks = self.get_text()
+    def _get_samples(self, n_chunks_intervals : List[int] = None) -> List[str]:
+        text_chunks = self._get_text()
         samples = text_chunks[:] if n_chunks_intervals == None else text_chunks[n_chunks_intervals[0]:n_chunks_intervals[1]]
         return samples
 
     @staticmethod
-    def get_prompt_fn(text : str) -> List[dict]:
+    def _get_prompt_fn(text : str) -> List[dict]:
         messages = [
             {
                 "role": "system",
@@ -128,11 +128,11 @@ class SyntheticQAGenerator:
     
     def _get_prompt_with_token_chat_template_fn(self, text : str, tokenizer: AutoTokenizer) -> List[str]:
         # Use the tokenizer’s built-in chat template rendering
-        prompt = self.get_prompt_fn(text)
+        prompt = self._get_prompt_fn(text)
         return tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
     
     @staticmethod
-    def chunk_list(lst: list, size: int) -> List[list]:
+    def _chunk_list(lst: list, size: int) -> List[list]:
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), size):
             yield lst[i:i+size]
@@ -143,24 +143,11 @@ class SyntheticQAGenerator:
         for key, value in cfg.__dict__.items():
             mlflow.log_param(key, value)
 
-    def _generate(self):
-        print('Generation Functions +++++++')
-        tokenizer = self._load_tokenizer()
-        cfg = self.cfg
-        samples = self.get_samples()
-        print(samples[cfg.sample_i : cfg.sample_f])
-        for batch in tqdm(self.chunk_list(samples[cfg.sample_i : cfg.sample_f], cfg.batch_size)):
-            batch_prompts = [self._get_prompt_with_token_chat_template_fn(sample, tokenizer) for sample in batch]
-            print('++++++++++++++++++++++++++++++++')
-            print(batch_prompts)
-            print('++++++++++++++++++++++++++++++++')
-            return batch_prompts
-
 
     def generate(self):
         chat, tokenizer = self.create_pipeline()
         cfg = self.cfg
-        samples = self.get_samples()
+        samples = self._get_samples()
 
         json_output_name = f"../../data/synthetic/synthetic_QA_{datetime.now():%Y%m%d_%H%M%S}_samples{cfg.sample_i}-{cfg.sample_f}.json"
 
@@ -173,7 +160,7 @@ class SyntheticQAGenerator:
             #total_prompt_tokens, total_completion_tokens = [], []
 
             # ==== MAIN GENERATION LOOP ====
-            for batch in tqdm(self.chunk_list(samples[cfg.sample_i : cfg.sample_f], cfg.batch_size)):
+            for batch in tqdm(self._chunk_list(samples[cfg.sample_i : cfg.sample_f], cfg.batch_size)):
                 batch_prompts = [self._get_prompt_with_token_chat_template_fn(sample, tokenizer) for sample in batch]
                 # Iterate over each sample in the batch
                 for prompt in batch_prompts:
@@ -190,6 +177,7 @@ class SyntheticQAGenerator:
 
                             # Parse output
                             raw_output = chat_completion[0]["generated_text"]
+
                             #Metadata included in the Databricks / OpenAI-style APIs
                             #usage = getattr(raw_output, "usage", None)
 
@@ -206,8 +194,6 @@ class SyntheticQAGenerator:
                                 parsed = json.loads(repaired)
                                 instruction = parsed.get("instruction", "")
                                 output = parsed.get("output", "")
-                                print(f'INSIDE Instruction: {instruction}')
-                                print(f'Output: {output}   ' )
                                       
                             except json.JSONDecodeError:
                                 # instruction, output = None, content
@@ -255,107 +241,7 @@ class SyntheticQAGenerator:
 
         print(f"✅ Generation completed. Logged results in MLflow experiment.")        
 
-        #                 except Exception as e:
-        #                     print(f"Error generating completion for prompt: {prompt}")
-        #                     print(e)
-
-        #     # ==== SAVE OUTPUT LOCALLY ====
-        #     with open(json_output_name, "w") as f:
-        #         json.dump(results, f, indent=2)
-
-        #     # ==== LOG METRICS & ARTIFACTS ====
-        #     if total_prompt_tokens:
-        #         mlflow.log_metric("avg_prompt_tokens", np.mean(total_prompt_tokens))
-        #         mlflow.log_metric("avg_completion_tokens", np.mean(total_completion_tokens))
-        #         mlflow.log_metric("total_generations", len(results))
-
-        #     # Upload JSON output as artifact
-        #     mlflow.log_artifact(json_output_name)
-
-        #     mlflow.set_tag("dataset", "synthetic_QA_physio")
-        #     mlflow.set_tag("run_type", "generation")
-        #     mlflow.set_tag("status", "completed")
-
-        # print(f"✅ Generation completed. Logged results in MLflow experiment.")
-        #         # Placeholder for actual model inference code
-        #         # This function should interact with the specified model to generate the QA pair
-        #         pass
-        
-        #     
-
-        #     # ==== MAIN GENERATION LOOP ====
-        #     for batch in tqdm(chunk_list(samples[sample_i:sample_f], batch_size)):
-        #         batch_prompts = [get_prompt(sample) for sample in batch]
-
-        #         # Iterate over each sample in the batch
-        #         for prompt in batch_prompts:
-        #             for _ in range(n_reps):
-        #                 print(prompt)
-        #                 try:
-        #                     chat_completion = client.chat.completions.create(
-        #                         messages=prompt,
-        #                         model=MODEL_NAME,
-        #                         max_tokens=max_tokens,
-        #                         temperature=temperature,
-        #                         top_p=top_p,
-        #                         n=1  # # one completion per API call; we repeat for n_reps
-        #                     )
-
-        #                     # Parse output
-        #                     content = chat_completion.choices[0].message.content
-        #                     usage = getattr(chat_completion, "usage", None)
-
-        #                     try:
-        #                         parsed = json.loads(content)
-        #                         instruction = parsed.get("instruction", "")
-        #                         output = parsed.get("output", "")
-        #                     except json.JSONDecodeError:
-        #                         instruction, output = None, content
-
-        #                     results.append({
-        #                         "prompt": prompt,
-        #                         "instruction": instruction,
-        #                         "output": output,
-        #                         "usage": {
-        #                             "prompt_tokens": getattr(usage, "prompt_tokens", None),
-        #                             "completion_tokens": getattr(usage, "completion_tokens", None),
-        #                             "total_tokens": getattr(usage, "total_tokens", None)
-        #                         }
-        #                     })
-
-        #                     # Collect token metrics
-        #                     if usage:
-        #                         total_prompt_tokens.append(usage.prompt_tokens)
-        #                         total_completion_tokens.append(usage.completion_tokens)
-
-        #                     time.sleep(0.5)  # avoid hitting rate limits
-
-        #                 except Exception as e:
-        #                     print(f"Error generating completion for prompt: {prompt}")
-        #                     print(e)
-
-        #     # ==== SAVE OUTPUT LOCALLY ====
-        #     with open(json_output_name, "w") as f:
-        #         json.dump(results, f, indent=2)
-
-        #     # ==== LOG METRICS & ARTIFACTS ====
-        #     if total_prompt_tokens:
-        #         mlflow.log_metric("avg_prompt_tokens", np.mean(total_prompt_tokens))
-        #         mlflow.log_metric("avg_completion_tokens", np.mean(total_completion_tokens))
-        #         mlflow.log_metric("total_generations", len(results))
-
-        #     # Upload JSON output as artifact
-        #     mlflow.log_artifact(json_output_name)
-
-        #     mlflow.set_tag("dataset", "synthetic_QA_physio")
-        #     mlflow.set_tag("run_type", "generation")
-        #     mlflow.set_tag("status", "completed")
-
-        # print(f"✅ Generation completed. Logged results in MLflow experiment.")
-        #         # Placeholder for actual model inference code
-        #         # This function should interact with the specified model to generate the QA pair
-        #         pass
-
+       
 
 if __name__ == "__main__":
     file_name = "../../data/processed/rebuilding_milo_chunks_docling_max_tokens128_min_tokens50_meta_llama3p18B.txt" 
@@ -364,7 +250,3 @@ if __name__ == "__main__":
 
     generator.generate()
 
-    
-
-
-    #print(generator.get_samples()[:1])

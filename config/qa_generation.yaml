@@ -1,5 +1,6 @@
-model_id: "meta-llama/Llama-3.1-8B"
+model_id: "meta-llama/Llama-3.1-8B-Instruct"
 experiment_name: "../../logs/mlruns/qa_generation_experiment"
+use_bnb: True
 
 generation:
   batch_size: 5
@@ -8,4 +9,4 @@ generation:
   top_p: 0.65
   max_tokens: 384
   sample_i: 100
-  sample_f: 100
+  sample_f: 101
